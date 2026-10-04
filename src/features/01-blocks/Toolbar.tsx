@@ -27,6 +27,12 @@ const TOOLS: Tool[][] = [
     { label: "—", name: "Divider", run: (e) => e.chain().focus().setHorizontalRule().run() },
   ],
   [
+    { label: "•", name: "Bulleted list", active: (e) => e.isActive("bulletList"), run: (e) => e.chain().focus().toggleBulletList().run() },
+    { label: "1.", name: "Numbered list", active: (e) => e.isActive("orderedList"), run: (e) => e.chain().focus().toggleOrderedList().run() },
+    { label: "☑", name: "Checklist", active: (e) => e.isActive("taskList"), run: (e) => e.chain().focus().toggleTaskList().run() },
+    { label: "▦", name: "Insert table", run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+  ],
+  [
     { label: "↶", name: "Undo", shortcut: "Mod+Z", run: (e) => e.chain().focus().undo().run() },
     { label: "↷", name: "Redo", shortcut: "Mod+Shift+Z", run: (e) => e.chain().focus().redo().run() },
   ],

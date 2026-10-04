@@ -1,5 +1,10 @@
 import { EditorContent, useEditor, type Editor as TiptapEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { TableKit } from "@tiptap/extension-table";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { matrixToTable, parseDelimited } from "../../domain/02-tables";
+import { describeTablesError } from "../02-tables/messages";
+import { TableBar } from "../02-tables/TableBar";
 import { useEffect, useRef } from "react";
 import { cleanPastedHtml, plainTextToBlocks, type DocumentBody } from "../../domain/01-blocks";
 import { describePasteError, describeRemoved } from "./messages";
@@ -33,6 +38,9 @@ export function Editor({ body, onChange, onNotice }: Props) {
         heading: { levels: [1, 2, 3] },
         link: { openOnClick: false, autolink: true, protocols: ["https", "http", "mailto"] },
       }),
+      TableKit.configure({ table: { resizable: false } }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
     ],
     content: body,
     editorProps: {
@@ -62,6 +70,16 @@ export function Editor({ body, onChange, onNotice }: Props) {
           return true;
         }
         if (text) {
+          // Cells copied as plain text (a terminal, "paste and match style" from a spreadsheet) become a table.
+          const cells = parseDelimited(text);
+          if (cells) {
+            const table = matrixToTable(cells);
+            if (table.ok) {
+              current.chain().focus().insertContent(table.value).run();
+              onNotice(`Pasted a table of ${cells.length} rows and ${cells[0]!.length} columns.`);
+            } else onNotice(describeTablesError(table.error));
+            return true;
+          }
           insertText(current, text);
           onNotice("");
           return true;
@@ -83,6 +101,7 @@ export function Editor({ body, onChange, onNotice }: Props) {
       <div className="sticky top-0 z-10 overflow-hidden rounded-t-lg">
         <Toolbar editor={editor} />
       </div>
+      <TableBar editor={editor} />
       <EditorContent editor={editor} />
     </div>
   );

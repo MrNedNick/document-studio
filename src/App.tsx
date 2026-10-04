@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { wordCount } from "./domain/01-blocks";
+import { checklistProgress } from "./domain/02-tables";
 import { Skeleton } from "./components/skeleton/skeleton";
 import { Editor, useDocument, type SaveState } from "./features/01-blocks";
 
@@ -13,6 +14,7 @@ const SAVE_TEXT: Record<SaveState, string> = {
 export default function App() {
   const { document, save, setAside, rename, edited } = useDocument();
   const words = useMemo(() => (document ? wordCount(document) : 0), [document]);
+  const tasks = useMemo(() => (document ? checklistProgress(document.body) : { done: 0, total: 0 }), [document]);
   const [notice, setNotice] = useState("");
 
   return (
@@ -54,6 +56,11 @@ export default function App() {
               <span>
                 {words} {words === 1 ? "word" : "words"}
               </span>
+              {tasks.total > 0 && (
+                <span>
+                  Checklist: {tasks.done} of {tasks.total} done
+                </span>
+              )}
               <span>Paste and match style (⇧ with paste) brings plain text only.</span>
             </div>
             {notice && (

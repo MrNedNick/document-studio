@@ -10,6 +10,7 @@ const KEEP: Record<string, string> = {
   p: "p", h1: "h1", h2: "h2", h3: "h3", h4: "h3", h5: "h3", h6: "h3",
   strong: "strong", b: "strong", em: "em", i: "em", u: "u", s: "s", strike: "s", del: "s",
   code: "code", pre: "pre", blockquote: "blockquote", ul: "ul", ol: "ol", li: "li", br: "br", hr: "hr", a: "a",
+  table: "table", thead: "thead", tbody: "tbody", tfoot: "tbody", tr: "tr", th: "th", td: "td",
 };
 
 const SAFE_LINK = /^(https?:|mailto:)/i;
@@ -42,7 +43,7 @@ export function cleanPastedHtml(html: string): Result<CleanPaste, BlocksError> {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent ?? "";
       // Line breaks between blocks are layout of the source, not text; inside a paragraph spaces matter.
-      if (!text.trim() && (into === out.body || ["UL", "OL", "BLOCKQUOTE"].includes((into as Element).tagName))) return;
+      if (!text.trim() && (into === out.body || ["UL", "OL", "BLOCKQUOTE", "TABLE", "THEAD", "TBODY", "TR"].includes((into as Element).tagName))) return;
       into.appendChild(out.createTextNode(text));
       return;
     }
@@ -64,6 +65,13 @@ export function cleanPastedHtml(html: string): Result<CleanPaste, BlocksError> {
         const href = element.getAttribute("href")?.trim() ?? "";
         if (SAFE_LINK.test(href)) clean.setAttribute("href", href);
         else if (href) removed.add("unsafe links");
+      }
+      // Merged cells from a spreadsheet stay merged, within reason.
+      if (mapped === "td" || mapped === "th") {
+        for (const name of ["colspan", "rowspan"]) {
+          const span = Number(element.getAttribute(name));
+          if (Number.isInteger(span) && span > 1 && span <= 30) clean.setAttribute(name, String(span));
+        }
       }
       if (mapped === "ol") {
         const start = Number(element.getAttribute("start"));

@@ -33,7 +33,11 @@ export interface Document {
 }
 
 /** Blocks and marks this version of the editor knows. Anything else in a document is a damaged or foreign file. */
-export const BLOCK_TYPES = ["doc", "paragraph", "heading", "text", "hardBreak", "blockquote", "codeBlock", "horizontalRule", "bulletList", "orderedList", "listItem"] as const;
+export const BLOCK_TYPES = [
+  "doc", "paragraph", "heading", "text", "hardBreak", "blockquote", "codeBlock", "horizontalRule",
+  "bulletList", "orderedList", "listItem", "taskList", "taskItem",
+  "table", "tableRow", "tableHeader", "tableCell",
+] as const;
 export const MARK_TYPES = ["bold", "italic", "strike", "code", "link", "underline"] as const;
 
 /** Pasted HTML bigger than this is refused rather than parsed: a page that size is a mistake, not a quote. */

@@ -8,20 +8,8 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import App from "../../src/App";
 import { putRaw, resetConnection } from "../../src/adapters/document-store";
 import { googleDocs, hostile } from "../fixtures/01-blocks/pastes";
+import { editorHtml, paste } from "./helpers";
 
-/** A paste the way the browser delivers it: a ClipboardEvent with HTML and/or plain text. */
-function paste(data: { html?: string; text?: string }) {
-  const editor = document.querySelector(".ProseMirror")!;
-  const event = new Event("paste", { bubbles: true, cancelable: true });
-  Object.defineProperty(event, "clipboardData", {
-    value: { getData: (type: string) => (type === "text/html" ? (data.html ?? "") : type === "text/plain" ? (data.text ?? "") : ""), files: [], types: [] },
-  });
-  act(() => {
-    editor.dispatchEvent(event);
-  });
-}
-
-const editorHtml = () => document.querySelector(".ProseMirror")!.innerHTML;
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();

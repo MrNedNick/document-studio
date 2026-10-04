@@ -75,3 +75,63 @@ body {
   height: 0;
   pointer-events: none;
 }
+
+.prose-doc table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  margin: 1em 0;
+  overflow: hidden;
+}
+.prose-doc td,
+.prose-doc th {
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.6rem;
+  vertical-align: top;
+  position: relative;
+  min-width: 3rem;
+}
+.prose-doc th {
+  background: var(--color-surface-raised);
+  font-weight: 600;
+  text-align: left;
+}
+.prose-doc td p,
+.prose-doc th p {
+  margin: 0;
+}
+/* The cells a drag selects across. */
+.prose-doc .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  pointer-events: none;
+}
+/* Wide tables scroll inside the page on a phone instead of stretching it. */
+.prose-doc .tableWrapper {
+  overflow-x: auto;
+}
+.prose-doc ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+.prose-doc ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.prose-doc ul[data-type="taskList"] li > label {
+  margin-top: 0.3em;
+  user-select: none;
+}
+.prose-doc ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+.prose-doc ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+.prose-doc li > p {
+  margin: 0;
+}
