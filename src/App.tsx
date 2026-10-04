@@ -4,6 +4,9 @@ import { checklistProgress } from "./domain/02-tables";
 import { Skeleton } from "./components/skeleton/skeleton";
 import { Editor, useDocument, type SaveState } from "./features/01-blocks";
 import { HistoryPanel } from "./features/04-versions";
+import { Outline } from "./features/05-search/Outline";
+import { DocumentsPanel } from "./features/05-search/DocumentsPanel";
+import type { Editor as TiptapEditor } from "@tiptap/react";
 import { Button } from "./components/button/button";
 import { ConfirmDialogProvider } from "./components/confirm-dialog/confirm-dialog";
 
@@ -24,8 +27,10 @@ export default function App() {
 }
 
 function Studio() {
-  const { document, save, setAside, rename, edited, revisions, generation, saveVersion, restoreVersion } = useDocument();
+  const { document, save, setAside, rename, edited, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument } = useDocument();
+  const [documentsOpen, setDocumentsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [editor, setEditor] = useState<TiptapEditor | null>(null);
   const words = useMemo(() => (document ? wordCount(document) : 0), [document]);
   const tasks = useMemo(() => (document ? checklistProgress(document.body) : { done: 0, total: 0 }), [document]);
   const [notice, setNotice] = useState("");
@@ -33,17 +38,24 @@ function Studio() {
   return (
     <div className="min-h-screen bg-surface-raised text-text">
       <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-4 py-3 xl:max-w-6xl">
           <span className="font-semibold tracking-tight">Document Studio</span>
           <span className="ml-auto text-xs text-text-muted" role="status" aria-live="polite">
             {document ? SAVE_TEXT[save] : ""}
           </span>
+          <Button size="sm" variant="outline" disabled={!document} onClick={() => setDocumentsOpen(true)}>
+            Documents
+          </Button>
           <Button size="sm" variant="outline" disabled={!document} onClick={() => setHistoryOpen(true)}>
             History{revisions.length ? ` (${revisions.length})` : ""}
           </Button>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <main className="mx-auto max-w-3xl px-4 py-6 xl:grid xl:max-w-6xl xl:grid-cols-[14rem_minmax(0,48rem)] xl:justify-center xl:gap-8">
+        <aside className="hidden xl:block">
+          <div className="sticky top-6">{editor && <Outline editor={editor} variant="side" />}</div>
+        </aside>
+        <div className="min-w-0">
         {setAside > 0 && (
           <p role="alert" className="mb-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
             {setAside === 1 ? "A saved document" : `${setAside} saved documents`} couldn't be read and {setAside === 1 ? "was" : "were"} set aside
@@ -67,7 +79,12 @@ function Studio() {
               placeholder="Untitled document"
               className="mb-4 w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-text-muted"
             />
-            <Editor key={`${document.id}:${generation}`} body={document.body} onChange={edited} onNotice={setNotice} />
+            {editor && (
+              <div className="xl:hidden">
+                <Outline editor={editor} variant="fold" />
+              </div>
+            )}
+            <Editor key={`${document.id}:${generation}`} body={document.body} onChange={edited} onNotice={setNotice} onReady={setEditor} />
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-muted">
               <span>
                 {words} {words === 1 ? "word" : "words"}
@@ -86,7 +103,15 @@ function Studio() {
             )}
           </>
         )}
+        </div>
       </main>
+      <DocumentsPanel
+        open={documentsOpen}
+        onClose={() => setDocumentsOpen(false)}
+        currentId={document?.id ?? null}
+        onOpen={(id) => void openDocument(id)}
+        onCreate={() => void createDocument()}
+      />
       <HistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} revisions={revisions} onSave={saveVersion} onRestore={restoreVersion} />
     </div>
   );

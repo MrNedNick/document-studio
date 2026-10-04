@@ -227,3 +227,12 @@ body {
   font-size: 0.85rem;
   color: var(--color-text-muted);
 }
+
+.prose-doc .search-match {
+  background: color-mix(in srgb, var(--color-warning) 35%, transparent);
+  border-radius: 2px;
+}
+.prose-doc .search-match-current {
+  background: var(--color-warning);
+  color: #14171c;
+}

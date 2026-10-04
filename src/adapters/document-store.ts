@@ -187,3 +187,17 @@ export async function writeRevisions(add: Revision[], remove: string[] = []): Pr
     return false;
   }
 }
+
+/** Every document that reads, newest first — for the list of documents. */
+export async function listDocuments(): Promise<Document[]> {
+  try {
+    const db = await openDatabase();
+    const all = await request(db.transaction(DOCUMENTS).objectStore(DOCUMENTS).getAll());
+    return all.flatMap((record) => {
+      const read = readDocument(record);
+      return read.ok ? [read.value] : [];
+    }).sort((a, b) => b.updatedAt - a.updatedAt);
+  } catch {
+    return [];
+  }
+}

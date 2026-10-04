@@ -23,6 +23,9 @@ exactly as it was.
 - **Versions** — kept automatically every five minutes of writing and thinned out as they age, or saved
   by hand with a name; read any version and restore it — the current text is kept as a version first,
   so a restore can always be taken back.
+- **Search and navigation** — find and replace with a match count (case and accents ignored unless
+  asked; "Replace all" undoes in one step), an outline of headings to jump between sections, and a
+  list of all documents on the device with search across titles and text.
 - **Saved on the device** — IndexedDB, written a moment after you stop typing. A record that no longer
   reads is set aside, never deleted; a browser that blocks storage gets an honest notice.
 - **Big documents stay fast** — a 153,000-word document opens in 145 ms and a key press takes one
@@ -31,9 +34,10 @@ exactly as it was.
 Walkthroughs with the rules and edge cases: [writing and pasting](docs/examples/01-blocks.md),
 [tables and lists](docs/examples/02-tables.md),
 [pictures and captions](docs/examples/03-images.md),
-[versions and restoring](docs/examples/04-versions.md).
+[versions and restoring](docs/examples/04-versions.md),
+[search and navigation](docs/examples/05-search.md).
 
-Next: search and navigation, and export to HTML and PDF.
+Next: export to HTML and PDF (and a few loose ends — see [Status](#status)).
 
 ## Run it
 
@@ -56,3 +60,15 @@ src/adapters/  IndexedDB
 src/features/  the editor and the save cycle
 test/          domain, storage and editor tests + fixtures (real Word and Google Docs clipboard HTML)
 ```
+
+## Status
+
+Done: writing and safe paste, tables and lists, pictures with captions, versions, search and navigation.
+
+Still to do:
+
+- Integration tests for search and navigation (find/replace counts and one-step undo, outline jump,
+  documents search and switching) — the scenario was checked by hand in the browser at 1440 and 360 px.
+- Export to HTML and PDF, and import of an exported file with damaged-file checks.
+- Deleting and renaming documents from the documents list.
+- Publishing: the project has no remote repository yet, so no CI or live demo.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listRevisions, loadLatest, saveDocument, writeRevisions } from "../../adapters/document-store";
+import { listDocuments, listRevisions, loadLatest, saveDocument, writeRevisions } from "../../adapters/document-store";
 import { makeRevision, pruneRevisions, restore, shouldSnapshot, type Revision, type VersionsError } from "../../domain/04-versions";
 import { newDocument, type Document } from "../../domain/01-blocks";
 
@@ -156,5 +156,31 @@ export function useDocument(delay = 400) {
     };
   }, [flush]);
 
-  return { document, save, setAside, rename, edited, flush, revisions, generation, saveVersion, restoreVersion };
+  /** Shows another document: the current one is saved first, its history replaced by the new one's. */
+  const switchTo = useCallback(
+    async (next: Document) => {
+      await flush();
+      latest.current = next;
+      readBody.current = null;
+      setDocument(next);
+      setGeneration((n) => n + 1);
+      const found = await listRevisions(next.id);
+      history.current = found;
+      setRevisions(found);
+    },
+    [flush],
+  );
+
+  const openDocument = useCallback(
+    async (id: string) => {
+      const found = (await listDocuments()).find((candidate) => candidate.id === id);
+      if (found) await switchTo(found);
+    },
+    [switchTo],
+  );
+
+  /** A new, empty document; it is saved once something is typed in it. */
+  const createDocument = useCallback(() => switchTo(newDocument(newId(), Date.now())), [switchTo]);
+
+  return { document, save, setAside, rename, edited, flush, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument };
 }

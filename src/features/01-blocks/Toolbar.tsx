@@ -40,7 +40,7 @@ const TOOLS: Tool[][] = [
 ];
 
 /** Formatting buttons that show what applies at the cursor, each reachable by Tab and named for screen readers. */
-export function Toolbar({ editor, onPictures }: { editor: Editor; onPictures: (files: File[]) => void }) {
+export function Toolbar({ editor, onPictures, onFind }: { editor: Editor; onPictures: (files: File[]) => void; onFind: () => void }) {
   const picker = useRef<HTMLInputElement>(null);
   // Re-render on selection changes only for the active flags we show.
   const active = useEditorState({
@@ -83,6 +83,16 @@ export function Toolbar({ editor, onPictures }: { editor: Editor; onPictures: (f
         className="min-w-8 rounded-sm px-2 py-1 text-sm font-semibold text-text-muted transition-colors hover:bg-surface-raised hover:text-text"
       >
         🖼
+      </button>
+      <button
+        type="button"
+        aria-label="Find and replace"
+        title={`Find and replace (${navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+F)`}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={onFind}
+        className="min-w-8 rounded-sm px-2 py-1 text-sm font-semibold text-text-muted transition-colors hover:bg-surface-raised hover:text-text"
+      >
+        ⌕
       </button>
       <input
         ref={picker}
