@@ -15,7 +15,14 @@ interface SearchState {
   matches: Match[];
   current: number;
   decorations: DecorationSet;
+  /** The text changed since the last count: matches were only shifted, a recount is due. */
+  stale?: boolean;
 }
+
+/** Highlights drawn at most, around the current match; the count still covers every match. */
+const MAX_HIGHLIGHTS = 2000;
+/** A recount waits for a pause in typing this long. */
+const RECOUNT_AFTER = 250;
 
 export const searchKey = new PluginKey<SearchState>("documentSearch");
 
@@ -51,9 +58,12 @@ export function findMatches(doc: ProseMirrorNode, query: string, matchCase: bool
 }
 
 function decorate(doc: ProseMirrorNode, matches: Match[], current: number) {
+  const start = Math.max(0, Math.min(current - MAX_HIGHLIGHTS / 2, matches.length - MAX_HIGHLIGHTS));
   return DecorationSet.create(
     doc,
-    matches.map((match, index) => Decoration.inline(match.from, match.to, { class: index === current ? "search-match search-match-current" : "search-match" })),
+    matches
+      .slice(start, start + MAX_HIGHLIGHTS)
+      .map((match, index) => Decoration.inline(match.from, match.to, { class: start + index === current ? "search-match search-match-current" : "search-match" })),
   );
 }
 
@@ -65,7 +75,7 @@ function build(doc: ProseMirrorNode, query: string, matchCase: boolean, near: nu
   return { query, matchCase, matches, current, decorations: decorate(doc, matches, current) };
 }
 
-type Meta = { query: string; matchCase: boolean } | { move: 1 | -1 } | { clear: true };
+type Meta = { query: string; matchCase: boolean } | { move: 1 | -1 } | { clear: true } | { recount: true };
 
 export const DocumentSearch = Extension.create({
   name: "documentSearch",
@@ -83,13 +93,36 @@ export const DocumentSearch = Extension.create({
               const current = (value.current + meta.move + value.matches.length) % value.matches.length;
               return { ...value, current, decorations: decorate(state.doc, value.matches, current) };
             }
-            // Typing while the bar is open keeps the matches up to date.
-            if (tr.docChanged && value.query) return build(state.doc, value.query, value.matchCase, value.matches[value.current]?.from ?? state.selection.from);
+            if (meta && "recount" in meta && value.query) return build(state.doc, value.query, value.matchCase, value.matches[value.current]?.from ?? state.selection.from);
+            // Typing while the bar is open: the highlights move with the text at once, and the matches
+            // are recounted when typing pauses — a full search on every key is too slow in a long document.
+            if (tr.docChanged && value.query) {
+              const matches = value.matches
+                .map((match) => ({ from: tr.mapping.map(match.from, 1), to: tr.mapping.map(match.to, -1) }))
+                .filter((match) => match.to > match.from);
+              return { ...value, matches, current: Math.min(value.current, matches.length - 1), decorations: value.decorations.map(tr.mapping, tr.doc), stale: true };
+            }
             return value;
           },
         },
         props: {
           decorations: (state) => searchKey.getState(state)?.decorations,
+        },
+        view() {
+          let timer: ReturnType<typeof setTimeout> | null = null;
+          return {
+            update(view) {
+              if (!searchKey.getState(view.state)?.stale) return;
+              if (timer) clearTimeout(timer);
+              timer = setTimeout(() => {
+                timer = null;
+                if (!view.isDestroyed && searchKey.getState(view.state)?.stale) view.dispatch(view.state.tr.setMeta(searchKey, { recount: true }));
+              }, RECOUNT_AFTER);
+            },
+            destroy() {
+              if (timer) clearTimeout(timer);
+            },
+          };
         },
       }),
     ];

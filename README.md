@@ -67,8 +67,6 @@ Done: writing and safe paste, tables and lists, pictures with captions, versions
 
 Still to do:
 
-- Integration tests for search and navigation (find/replace counts and one-step undo, outline jump,
-  documents search and switching) — the scenario was checked by hand in the browser at 1440 and 360 px.
 - Export to HTML and PDF, and import of an exported file with damaged-file checks.
 - Deleting and renaming documents from the documents list.
 - Publishing: the project has no remote repository yet, so no CI or live demo.

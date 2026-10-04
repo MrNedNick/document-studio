@@ -22,11 +22,18 @@ npm run dev
 - Matches are found within a paragraph, heading, cell or caption — a word that is half bold is still
   found; a match never runs across a picture or a line break.
 - Queries over 200 characters are refused with a message rather than run.
+- Typing with the find bar open moves the highlights with the text at once and recounts after a
+  250 ms pause; at most 2,000 highlights are drawn around the current match (the count covers all).
+
+## Measured
+
+On a 153,000-word document, Chromium: finding "report" (9,374 matches) takes 239 ms; with the find bar
+open, a key press in the text takes 16 ms to the next frame (median of 10). Recounting on every key
+took 133 ms per key press before matches were moved with the text and recounted after a pause.
 
 ## Where it lives
 
 - `src/domain/05-search/` — `fold`, `findAll`, `outline`, `snippetAround`, `searchDocuments`.
 - `src/features/05-search/` — the search extension (highlights, replace), the find bar, the outline and
   the documents list.
-- Tests: `test/domain/05-search.test.ts`. Integration tests for this stage are still to be written —
-  see the status in the README.
+- Tests: `test/domain/05-search.test.ts`, `test/integration/05-search.test.tsx`.
