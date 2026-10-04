@@ -9,6 +9,7 @@ import { DocumentsPanel } from "./features/05-search/DocumentsPanel";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import { Button } from "./components/button/button";
 import { ConfirmDialogProvider } from "./components/confirm-dialog/confirm-dialog";
+import { ExportButton } from "./features/06-export/ExportButton";
 
 const SAVE_TEXT: Record<SaveState, string> = {
   saved: "Saved on this device",
@@ -27,7 +28,7 @@ export default function App() {
 }
 
 function Studio() {
-  const { document, save, setAside, rename, edited, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument } = useDocument();
+  const { document, save, setAside, rename, edited, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument, importDocument } = useDocument();
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [editor, setEditor] = useState<TiptapEditor | null>(null);
@@ -49,6 +50,7 @@ function Studio() {
           <Button size="sm" variant="outline" disabled={!document} onClick={() => setHistoryOpen(true)}>
             History{revisions.length ? ` (${revisions.length})` : ""}
           </Button>
+          <ExportButton disabled={!document || !editor} readDocument={() => document && editor ? { ...document, body: editor.getJSON() as typeof document.body } : null} />
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6 xl:grid xl:max-w-6xl xl:grid-cols-[14rem_minmax(0,48rem)] xl:justify-center xl:gap-8">
@@ -111,6 +113,7 @@ function Studio() {
         currentId={document?.id ?? null}
         onOpen={(id) => void openDocument(id)}
         onCreate={() => void createDocument()}
+        onImport={importDocument}
       />
       <HistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} revisions={revisions} onSave={saveVersion} onRestore={restoreVersion} />
     </div>

@@ -5,6 +5,7 @@ import { searchDocuments } from "../../domain/05-search";
 import { Button } from "../../components/button/button";
 import { Modal } from "../../components/modal/modal";
 import { cn } from "../../lib/cn";
+import { ImportButton } from "../06-export/ImportButton";
 
 interface Props {
   open: boolean;
@@ -12,12 +13,13 @@ interface Props {
   currentId: string | null;
   onOpen: (id: string) => void;
   onCreate: () => void;
+  onImport: (text: string) => Promise<void>;
 }
 
 const when = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** All documents on this device, searchable by title and text, with a new one a click away. */
-export function DocumentsPanel({ open, onClose, currentId, onOpen, onCreate }: Props) {
+export function DocumentsPanel({ open, onClose, currentId, onOpen, onCreate, onImport }: Props) {
   const [documents, setDocuments] = useState<Document[] | null>(null);
   const [query, setQuery] = useState("");
   const searchId = useId();
@@ -51,6 +53,7 @@ export function DocumentsPanel({ open, onClose, currentId, onOpen, onCreate }: P
         </Button>
       }
     >
+      <ImportButton onImport={onImport} onClose={onClose} />
       <label htmlFor={searchId} className="sr-only">
         Search documents
       </label>

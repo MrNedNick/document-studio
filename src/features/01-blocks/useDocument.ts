@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listDocuments, listRevisions, loadLatest, saveDocument, writeRevisions } from "../../adapters/document-store";
 import { makeRevision, pruneRevisions, restore, shouldSnapshot, type Revision, type VersionsError } from "../../domain/04-versions";
 import { newDocument, type Document } from "../../domain/01-blocks";
+import { importDocumentFile } from "../../adapters/document-files";
 
 export type SaveState = "saved" | "saving" | "unsaved" | "unavailable";
 
@@ -182,5 +183,12 @@ export function useDocument(delay = 400) {
   /** A new, empty document; it is saved once something is typed in it. */
   const createDocument = useCallback(() => switchTo(newDocument(newId(), Date.now())), [switchTo]);
 
-  return { document, save, setAside, rename, edited, flush, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument };
+  const importDocument = useCallback(async (text: string) => {
+    await flush();
+    const imported = await importDocumentFile(text);
+    await switchTo(imported);
+    setSave("saved");
+  }, [flush, switchTo]);
+
+  return { document, save, setAside, rename, edited, flush, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument, importDocument };
 }

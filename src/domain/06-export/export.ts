@@ -87,13 +87,23 @@ export function readBundle(text: string): Result<Bundle, ExportError> {
   }
   if (!data || typeof data !== "object" || data.format !== BUNDLE_FORMAT || typeof data.version !== "number") return err(exportError("not-a-bundle"));
   if (data.version > BUNDLE_VERSION) return err(exportError("newer-format"));
-  const document = readDocument(data.document);
+  if (data.version !== BUNDLE_VERSION) return err(exportError("not-a-bundle"));
+  let document: ReturnType<typeof readDocument>;
+  try { document = readDocument(data.document); }
+  catch { return err(exportError("document-damaged")); }
   if (!document.ok) return err(exportError("document-damaged", document.error.type ?? document.error.reason));
   const assets = Array.isArray(data.assets) ? data.assets : [];
+  const ids = new Set<string>();
   for (const asset of assets) {
     const fine =
-      asset && typeof asset.id === "string" && (IMAGE_TYPES as readonly string[]).includes(asset.type) && typeof asset.data === "string" && /^[A-Za-z0-9+/]*={0,2}$/.test(asset.data);
+      asset && typeof asset.id === "string" && asset.id.length > 0 && !ids.has(asset.id) &&
+      (IMAGE_TYPES as readonly string[]).includes(asset.type) &&
+      [asset.width, asset.height, asset.bytes].every((value) => Number.isInteger(value) && value > 0) &&
+      Number.isFinite(asset.createdAt) && typeof asset.data === "string" && asset.data.length > 0 &&
+      /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(asset.data);
     if (!fine) return err(exportError("asset-damaged", typeof asset?.id === "string" ? asset.id : undefined));
+    ids.add(asset.id);
   }
+  for (const id of assetsIn(document.value.body)) if (!ids.has(id)) return err(exportError("asset-damaged", id));
   return ok({ format: BUNDLE_FORMAT, version: data.version, exportedAt: Number(data.exportedAt) || 0, document: document.value, assets: assets as BundledAsset[] });
 }
