@@ -6,6 +6,10 @@ exactly as it was.
 
 **React 19 · Tiptap 3 (ProseMirror) · IndexedDB · TypeScript · Vite · Vitest**
 
+[Open Document Studio](https://mrnednick.github.io/document-studio/).
+Documents are kept in this browser. Export a document file to back them up or
+move them to another device.
+
 ## What works today
 
 - **A real editor** — headings, bold, italic, strikethrough, code, quotes, code blocks, dividers, links,
@@ -30,14 +34,17 @@ exactly as it was.
   reads is set aside, never deleted; a browser that blocks storage gets an honest notice.
 - **Big documents stay fast** — a 153,000-word document opens in 145 ms and a key press takes one
   frame (details in the [walkthrough](docs/examples/01-blocks.md)).
+- **Export and transfer** — download a standalone HTML page with embedded pictures, print or save
+  as PDF through the browser, or keep an editable JSON document file with its pictures. Import opens
+  a new copy, keeping existing documents intact; damaged or incomplete files explain the problem
+  before anything is saved. Exports include the latest typing, even before autosave.
 
 Walkthroughs with the rules and edge cases: [writing and pasting](docs/examples/01-blocks.md),
 [tables and lists](docs/examples/02-tables.md),
 [pictures and captions](docs/examples/03-images.md),
 [versions and restoring](docs/examples/04-versions.md),
-[search and navigation](docs/examples/05-search.md).
-
-Next: export to HTML and PDF (and a few loose ends — see [Status](#status)).
+[search and navigation](docs/examples/05-search.md),
+[exporting and transferring](docs/examples/06-export.md).
 
 ## Run it
 
@@ -52,6 +59,10 @@ npm run lint      # oxlint
 npm run build
 ```
 
+GitHub Actions checks every change and publishes successful `main` builds to GitHub Pages.
+For a local preview of the deployment path, run `GITHUB_PAGES=true npm run build`
+and `GITHUB_PAGES=true npm run preview`.
+
 ## Layout
 
 ```
@@ -63,13 +74,10 @@ test/          domain, storage and editor tests + fixtures (real Word and Google
 
 ## Status
 
-Done: writing and safe paste, tables and lists, pictures with captions, versions, search and navigation.
+Done: writing and safe paste, tables and lists, pictures with captions, versions, search and navigation,
+HTML and browser PDF export, document files and import, CI and a live demo.
 
 Still to do:
 
-- Export to HTML and PDF, and import of an exported file: the rules are written and tested
-  (`src/domain/06-export/` — a standalone HTML page with pictures inside and print styles, a `.json`
-  bundle with the pictures, and reading a bundle back with every kind of damage named); the buttons
-  and the import screen are not built yet.
 - Deleting and renaming documents from the documents list.
-- Publishing: the project has no remote repository yet, so no CI or live demo.
+- PDF pagination and printer options depend on the browser's print dialog.
