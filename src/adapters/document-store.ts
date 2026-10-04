@@ -1,14 +1,17 @@
 import { readDocument, type Document } from "../domain/01-blocks";
 import type { Asset } from "../domain/03-images";
+import type { Revision } from "../domain/04-versions";
 import { err, ok, type Result } from "../domain/result";
 
 const DB_NAME = "document-studio";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const DOCUMENTS = "documents";
 /** Records that no longer read are moved here, never deleted: the text may still be recovered by hand. */
 const DAMAGED = "damaged";
 /** Pictures, by id, with their bytes: documents only name them, so a long illustrated document stays small. */
 const ASSETS = "assets";
+/** Earlier versions of documents, found by the document they belong to. */
+const REVISIONS = "revisions";
 
 export type StoreError = { kind: "store"; reason: "unavailable" };
 
@@ -31,6 +34,8 @@ export function openDatabase(factory: IDBFactory | undefined = globalThis.indexe
       if (!db.objectStoreNames.contains(DAMAGED)) db.createObjectStore(DAMAGED, { autoIncrement: true });
       // Version 2: pictures. Opening a version 1 database adds the store and keeps every document.
       if (!db.objectStoreNames.contains(ASSETS)) db.createObjectStore(ASSETS, { keyPath: "id" });
+      // Version 3: history.
+      if (!db.objectStoreNames.contains(REVISIONS)) db.createObjectStore(REVISIONS, { keyPath: "id" }).createIndex("documentId", "documentId");
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => {
@@ -150,5 +155,35 @@ export async function loadAsset(id: string): Promise<StoredAsset | null> {
     return { asset, blob: new Blob([data], { type: asset.type }) };
   } catch {
     return null;
+  }
+}
+
+/** A document's versions, oldest first. */
+export async function listRevisions(documentId: string): Promise<Revision[]> {
+  try {
+    const db = await openDatabase();
+    const all = await request(db.transaction(REVISIONS).objectStore(REVISIONS).index("documentId").getAll(documentId));
+    return (all as Revision[]).sort((a, b) => a.createdAt - b.createdAt);
+  } catch {
+    return [];
+  }
+}
+
+/** Adds versions and removes others in one transaction, so history is never half-written. */
+export async function writeRevisions(add: Revision[], remove: string[] = []): Promise<boolean> {
+  try {
+    const db = await openDatabase();
+    const tx = db.transaction(REVISIONS, "readwrite");
+    const store = tx.objectStore(REVISIONS);
+    add.forEach((revision) => store.put(revision));
+    remove.forEach((id) => store.delete(id));
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    return true;
+  } catch {
+    return false;
   }
 }

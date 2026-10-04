@@ -205,3 +205,25 @@ body {
   color: var(--color-text);
   font-size: 0.85rem;
 }
+
+/* A version shown read-only: same typography, smaller frame; a picture shows its caption only. */
+.prose-preview {
+  min-height: 0;
+  padding: 1rem 1.25rem;
+  font-size: 0.95rem;
+}
+.prose-preview figure::before {
+  content: "Picture";
+  display: block;
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border-radius: 4px;
+}
+.prose-preview figcaption {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}

@@ -1,11 +1,9 @@
 import { EditorContent, useEditor, type Editor as TiptapEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { TableKit } from "@tiptap/extension-table";
-import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { matrixToTable, parseDelimited } from "../../domain/02-tables";
 import { describeTablesError } from "../02-tables/messages";
 import { TableBar } from "../02-tables/TableBar";
-import { describeImagesError, Figure, insertImages } from "../03-images";
+import { describeImagesError, insertImages } from "../03-images";
+import { documentExtensions } from "./extensions";
 import { useEffect, useRef } from "react";
 import { cleanPastedHtml, plainTextToBlocks, type DocumentBody } from "../../domain/01-blocks";
 import { describePasteError, describeRemoved } from "./messages";
@@ -34,16 +32,7 @@ function insertText(editor: TiptapEditor, text: string) {
 export function Editor({ body, onChange, onNotice }: Props) {
   const ref = useRef<TiptapEditor | null>(null);
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-        link: { openOnClick: false, autolink: true, protocols: ["https", "http", "mailto"] },
-      }),
-      TableKit.configure({ table: { resizable: false } }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Figure,
-    ],
+    extensions: documentExtensions,
     content: body,
     editorProps: {
       attributes: { class: "prose-doc", "aria-label": "Document", "aria-multiline": "true", role: "textbox" },

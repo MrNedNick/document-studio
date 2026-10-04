@@ -10,3 +10,14 @@ if (typeof Range !== "undefined") {
   Range.prototype.getBoundingClientRect ??= noRect;
 }
 if (typeof document !== "undefined" && !document.elementFromPoint) document.elementFromPoint = () => null;
+
+// jsdom has <dialog> but not its modal methods; these do what the tests need: open and close.
+if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+    this.dispatchEvent(new Event("close"));
+  };
+}

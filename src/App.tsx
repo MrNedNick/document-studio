@@ -3,6 +3,9 @@ import { wordCount } from "./domain/01-blocks";
 import { checklistProgress } from "./domain/02-tables";
 import { Skeleton } from "./components/skeleton/skeleton";
 import { Editor, useDocument, type SaveState } from "./features/01-blocks";
+import { HistoryPanel } from "./features/04-versions";
+import { Button } from "./components/button/button";
+import { ConfirmDialogProvider } from "./components/confirm-dialog/confirm-dialog";
 
 const SAVE_TEXT: Record<SaveState, string> = {
   saved: "Saved on this device",
@@ -11,8 +14,18 @@ const SAVE_TEXT: Record<SaveState, string> = {
   unavailable: "Not saved — this browser blocks storage. Keep the tab open, or export the document.",
 };
 
+/** The page, with the confirm dialogs it may ask. */
 export default function App() {
-  const { document, save, setAside, rename, edited } = useDocument();
+  return (
+    <ConfirmDialogProvider>
+      <Studio />
+    </ConfirmDialogProvider>
+  );
+}
+
+function Studio() {
+  const { document, save, setAside, rename, edited, revisions, generation, saveVersion, restoreVersion } = useDocument();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const words = useMemo(() => (document ? wordCount(document) : 0), [document]);
   const tasks = useMemo(() => (document ? checklistProgress(document.body) : { done: 0, total: 0 }), [document]);
   const [notice, setNotice] = useState("");
@@ -25,6 +38,9 @@ export default function App() {
           <span className="ml-auto text-xs text-text-muted" role="status" aria-live="polite">
             {document ? SAVE_TEXT[save] : ""}
           </span>
+          <Button size="sm" variant="outline" disabled={!document} onClick={() => setHistoryOpen(true)}>
+            History{revisions.length ? ` (${revisions.length})` : ""}
+          </Button>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6">
@@ -51,7 +67,7 @@ export default function App() {
               placeholder="Untitled document"
               className="mb-4 w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-text-muted"
             />
-            <Editor key={document.id} body={document.body} onChange={edited} onNotice={setNotice} />
+            <Editor key={`${document.id}:${generation}`} body={document.body} onChange={edited} onNotice={setNotice} />
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-muted">
               <span>
                 {words} {words === 1 ? "word" : "words"}
@@ -71,6 +87,7 @@ export default function App() {
           </>
         )}
       </main>
+      <HistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} revisions={revisions} onSave={saveVersion} onRestore={restoreVersion} />
     </div>
   );
 }

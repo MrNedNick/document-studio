@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { loadLatest, saveDocument } from "../../adapters/document-store";
+import { listRevisions, loadLatest, saveDocument, writeRevisions } from "../../adapters/document-store";
+import { makeRevision, pruneRevisions, restore, shouldSnapshot, type Revision, type VersionsError } from "../../domain/04-versions";
 import { newDocument, type Document } from "../../domain/01-blocks";
 
 export type SaveState = "saved" | "saving" | "unsaved" | "unavailable";
@@ -14,6 +15,10 @@ export function useDocument(delay = 400) {
   const [document, setDocument] = useState<Document | null>(null);
   const [save, setSave] = useState<SaveState>("saved");
   const [setAside, setSetAside] = useState(0);
+  const [revisions, setRevisions] = useState<Revision[]>([]);
+  const history = useRef<Revision[]>([]);
+  /** Bumped when the text is replaced from outside the editor (a restore), so the editor reloads it. */
+  const [generation, setGeneration] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef<Document | null>(null);
   /** Reads the editor's content; called once per save, not once per keystroke. */
@@ -29,7 +34,14 @@ export function useDocument(delay = 400) {
         return;
       }
       setSetAside(loaded.value.setAside);
-      setDocument(loaded.value.document ?? newDocument(newId(), Date.now()));
+      const opened = loaded.value.document ?? newDocument(newId(), Date.now());
+      setDocument(opened);
+      latest.current = opened;
+      void listRevisions(opened.id).then((found) => {
+        if (!alive) return;
+        history.current = found;
+        setRevisions(found);
+      });
     });
     return () => {
       alive = false;
@@ -47,7 +59,56 @@ export function useDocument(delay = 400) {
     }
     const saved = await saveDocument(latest.current);
     setSave(saved.ok ? "saved" : "unavailable");
+    if (!saved.ok) return;
+    // An automatic version now and then while writing, thinned out as it ages.
+    const now = Date.now();
+    if (shouldSnapshot(history.current, latest.current, now)) {
+      const made = makeRevision(latest.current, "auto", newId(), now);
+      if (made.ok) await keepHistory([made.value], now);
+    }
   }, []);
+
+  /** Writes new versions and drops the ones that have aged out, in one go. */
+  async function keepHistory(add: Revision[], now: number) {
+    const { keep, drop } = pruneRevisions([...history.current, ...add], now);
+    if (await writeRevisions(add, drop.map((revision) => revision.id))) {
+      history.current = keep.sort((a, b) => a.createdAt - b.createdAt);
+      setRevisions(history.current);
+    }
+  }
+
+  /** A version saved on purpose, with an optional name; kept however old it gets. */
+  const saveVersion = useCallback(
+    async (name?: string): Promise<VersionsError | null> => {
+      await flush();
+      if (!latest.current) return null;
+      const now = Date.now();
+      const made = makeRevision(latest.current, "manual", newId(), now, name);
+      if (!made.ok) return made.error;
+      await keepHistory([made.value], now);
+      return null;
+    },
+    [flush],
+  );
+
+  /** Puts a version's text back; the current text becomes a version first, so this can be undone too. */
+  const restoreVersion = useCallback(
+    async (revisionId: string): Promise<VersionsError | null> => {
+      await flush();
+      if (!latest.current) return null;
+      const now = Date.now();
+      const restored = restore(latest.current, history.current, revisionId, newId(), now);
+      if (!restored.ok) return restored.error;
+      await keepHistory([restored.value.safety], now);
+      latest.current = restored.value.document;
+      setDocument(restored.value.document);
+      setGeneration((n) => n + 1);
+      const saved = await saveDocument(restored.value.document);
+      setSave(saved.ok ? "saved" : "unavailable");
+      return null;
+    },
+    [flush],
+  );
 
   const schedule = useCallback(() => {
     setSave((state) => (state === "unavailable" ? state : "saving"));
@@ -95,5 +156,5 @@ export function useDocument(delay = 400) {
     };
   }, [flush]);
 
-  return { document, save, setAside, rename, edited, flush };
+  return { document, save, setAside, rename, edited, flush, revisions, generation, saveVersion, restoreVersion };
 }
