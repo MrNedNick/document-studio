@@ -17,15 +17,19 @@ exactly as it was.
   appears in a table, Tab between cells; ranges copied from Excel or Google Sheets paste as real tables
   (merged cells kept); bulleted, numbered and checklist items, with "2 of 5 done" in the status line.
   Undo after inserting a table takes it away in one step.
+- **Pictures with captions** — add from the toolbar, paste a screenshot or drop files; big photos are
+  stored at 2000 px, SVG is refused (it can run code); captions are document text, and every picture
+  gets a description for screen readers. Documents only name their pictures, so they stay small.
 - **Saved on the device** — IndexedDB, written a moment after you stop typing. A record that no longer
   reads is set aside, never deleted; a browser that blocks storage gets an honest notice.
 - **Big documents stay fast** — a 153,000-word document opens in 145 ms and a key press takes one
   frame (details in the [walkthrough](docs/examples/01-blocks.md)).
 
 Walkthroughs with the rules and edge cases: [writing and pasting](docs/examples/01-blocks.md),
-[tables and lists](docs/examples/02-tables.md).
+[tables and lists](docs/examples/02-tables.md),
+[pictures and captions](docs/examples/03-images.md).
 
-Next: images with captions, versions, search, and export to HTML and PDF.
+Next: versions, search, and export to HTML and PDF.
 
 ## Run it
 

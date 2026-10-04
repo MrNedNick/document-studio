@@ -37,6 +37,7 @@ export const BLOCK_TYPES = [
   "doc", "paragraph", "heading", "text", "hardBreak", "blockquote", "codeBlock", "horizontalRule",
   "bulletList", "orderedList", "listItem", "taskList", "taskItem",
   "table", "tableRow", "tableHeader", "tableCell",
+  "figure",
 ] as const;
 export const MARK_TYPES = ["bold", "italic", "strike", "code", "link", "underline"] as const;
 

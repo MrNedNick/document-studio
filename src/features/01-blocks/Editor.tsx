@@ -5,6 +5,7 @@ import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { matrixToTable, parseDelimited } from "../../domain/02-tables";
 import { describeTablesError } from "../02-tables/messages";
 import { TableBar } from "../02-tables/TableBar";
+import { describeImagesError, Figure, insertImages } from "../03-images";
 import { useEffect, useRef } from "react";
 import { cleanPastedHtml, plainTextToBlocks, type DocumentBody } from "../../domain/01-blocks";
 import { describePasteError, describeRemoved } from "./messages";
@@ -41,6 +42,7 @@ export function Editor({ body, onChange, onNotice }: Props) {
       TableKit.configure({ table: { resizable: false } }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      Figure,
     ],
     content: body,
     editorProps: {
@@ -50,11 +52,25 @@ export function Editor({ body, onChange, onNotice }: Props) {
         const cleaned = cleanPastedHtml(html);
         return cleaned.ok ? cleaned.value.html : "";
       },
+      handleDrop(view, event, _slice, moved) {
+        const current = ref.current;
+        const files = [...(event.dataTransfer?.files ?? [])];
+        if (moved || !current || !files.length) return false;
+        const at = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+        event.preventDefault();
+        void addPictures(current, files, at);
+        return true;
+      },
       handlePaste(_view, event) {
         const current = ref.current;
         const data = event.clipboardData;
         if (!current || !data) return false;
-        if (data.files.length && !data.getData("text/html")) return false; // pictures are not this stage
+        // A screenshot or a copied picture file: stored and inserted as a figure.
+        const pictures = [...data.files].filter((file) => file.type.startsWith("image/"));
+        if (pictures.length && !data.getData("text/html")) {
+          void addPictures(current, pictures);
+          return true;
+        }
         const html = data.getData("text/html");
         const text = data.getData("text/plain");
         if (html) {
@@ -90,6 +106,21 @@ export function Editor({ body, onChange, onNotice }: Props) {
     onUpdate: ({ editor: updated }) => onChange(() => updated.getJSON() as DocumentBody),
   });
 
+  async function addPictures(target: TiptapEditor, files: File[], at?: number) {
+    onNotice(files.length === 1 ? "Adding the picture…" : `Adding ${files.length} pictures…`);
+    const result = await insertImages(target, files, at);
+    const added = result.inserted === 0 ? "" : result.inserted === 1 ? "Picture added — click it to write a description." : `${result.inserted} pictures added.`;
+    onNotice(
+      [
+        added,
+        ...result.problems.map(describeImagesError),
+        ...(result.unsaved ? ["This browser couldn't store the pictures — they won't be there after a reload."] : []),
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+  }
+
   // The paste handler needs the live editor; in development React mounts twice, so it follows the current one.
   useEffect(() => {
     ref.current = editor;
@@ -99,7 +130,7 @@ export function Editor({ body, onChange, onNotice }: Props) {
   return (
     <div className="rounded-lg border border-border bg-surface shadow-card">
       <div className="sticky top-0 z-10 overflow-hidden rounded-t-lg">
-        <Toolbar editor={editor} />
+        <Toolbar editor={editor} onPictures={(files) => void addPictures(editor, files)} />
       </div>
       <TableBar editor={editor} />
       <EditorContent editor={editor} />

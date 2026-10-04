@@ -1,11 +1,14 @@
 import { readDocument, type Document } from "../domain/01-blocks";
+import type { Asset } from "../domain/03-images";
 import { err, ok, type Result } from "../domain/result";
 
 const DB_NAME = "document-studio";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const DOCUMENTS = "documents";
 /** Records that no longer read are moved here, never deleted: the text may still be recovered by hand. */
 const DAMAGED = "damaged";
+/** Pictures, by id, with their bytes: documents only name them, so a long illustrated document stays small. */
+const ASSETS = "assets";
 
 export type StoreError = { kind: "store"; reason: "unavailable" };
 
@@ -26,6 +29,8 @@ export function openDatabase(factory: IDBFactory | undefined = globalThis.indexe
       const db = req.result;
       if (!db.objectStoreNames.contains(DOCUMENTS)) db.createObjectStore(DOCUMENTS, { keyPath: "id" });
       if (!db.objectStoreNames.contains(DAMAGED)) db.createObjectStore(DAMAGED, { autoIncrement: true });
+      // Version 2: pictures. Opening a version 1 database adds the store and keeps every document.
+      if (!db.objectStoreNames.contains(ASSETS)) db.createObjectStore(ASSETS, { keyPath: "id" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => {
@@ -108,4 +113,42 @@ export async function putRaw(record: unknown): Promise<void> {
 export async function damagedCount(): Promise<number> {
   const db = await openDatabase();
   return request(db.transaction(DAMAGED).objectStore(DAMAGED).count());
+}
+
+export interface StoredAsset {
+  asset: Asset;
+  blob: Blob;
+}
+
+/** Bytes are stored as an ArrayBuffer, not a Blob: every browser (and test runtime) clones those the same way. */
+export async function saveAsset(asset: Asset, blob: Blob): Promise<Result<Asset, StoreError>> {
+  try {
+    const data = await blob.arrayBuffer();
+    const db = await openDatabase();
+    const tx = db.transaction(ASSETS, "readwrite");
+    tx.objectStore(ASSETS).put({ ...asset, data });
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    return ok(asset);
+  } catch {
+    return err({ kind: "store", reason: "unavailable" });
+  }
+}
+
+/** A stored picture, or null when this device doesn't have it (a document from elsewhere, cleared storage). */
+export async function loadAsset(id: string): Promise<StoredAsset | null> {
+  try {
+    const db = await openDatabase();
+    const record = await request(db.transaction(ASSETS).objectStore(ASSETS).get(id));
+    // Checked by tag, not instanceof: a buffer cloned out of IndexedDB may come from another realm.
+    const isBytes = (value: unknown) => Object.prototype.toString.call(value) === "[object ArrayBuffer]" || ArrayBuffer.isView(value);
+    if (!record || !isBytes(record.data)) return null;
+    const { data, ...asset } = record as Asset & { data: ArrayBuffer };
+    return { asset, blob: new Blob([data], { type: asset.type }) };
+  } catch {
+    return null;
+  }
 }

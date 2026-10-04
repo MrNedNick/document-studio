@@ -82,13 +82,17 @@ export function useDocument(delay = 400) {
     [schedule],
   );
 
-  // A pending save is written before the tab goes away.
+  // A pending save is written before the tab goes away, and before the editor itself does — not by a
+  // timer that fires after it is gone.
   useEffect(() => {
     const onHide = () => {
       if (timer.current) void flush();
     };
     window.addEventListener("pagehide", onHide);
-    return () => window.removeEventListener("pagehide", onHide);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      if (timer.current) void flush();
+    };
   }, [flush]);
 
   return { document, save, setAside, rename, edited, flush };

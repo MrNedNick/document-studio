@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
+import { useRef } from "react";
 import { cn } from "../../lib/cn";
 
 interface Tool {
@@ -39,7 +40,8 @@ const TOOLS: Tool[][] = [
 ];
 
 /** Formatting buttons that show what applies at the cursor, each reachable by Tab and named for screen readers. */
-export function Toolbar({ editor }: { editor: Editor }) {
+export function Toolbar({ editor, onPictures }: { editor: Editor; onPictures: (files: File[]) => void }) {
+  const picker = useRef<HTMLInputElement>(null);
   // Re-render on selection changes only for the active flags we show.
   const active = useEditorState({
     editor,
@@ -72,6 +74,29 @@ export function Toolbar({ editor }: { editor: Editor }) {
           })}
         </div>
       ))}
+      <button
+        type="button"
+        aria-label="Add a picture"
+        title="Add a picture (or paste or drop one)"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => picker.current?.click()}
+        className="min-w-8 rounded-sm px-2 py-1 text-sm font-semibold text-text-muted transition-colors hover:bg-surface-raised hover:text-text"
+      >
+        🖼
+      </button>
+      <input
+        ref={picker}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        hidden
+        aria-label="Choose pictures"
+        onChange={(event) => {
+          const files = [...(event.target.files ?? [])];
+          event.target.value = "";
+          if (files.length) onPictures(files);
+        }}
+      />
     </div>
   );
 }
