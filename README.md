@@ -67,6 +67,9 @@ Done: writing and safe paste, tables and lists, pictures with captions, versions
 
 Still to do:
 
-- Export to HTML and PDF, and import of an exported file with damaged-file checks.
+- Export to HTML and PDF, and import of an exported file: the rules are written and tested
+  (`src/domain/06-export/` — a standalone HTML page with pictures inside and print styles, a `.json`
+  bundle with the pictures, and reading a bundle back with every kind of damage named); the buttons
+  and the import screen are not built yet.
 - Deleting and renaming documents from the documents list.
 - Publishing: the project has no remote repository yet, so no CI or live demo.
