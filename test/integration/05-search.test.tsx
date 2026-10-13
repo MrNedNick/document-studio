@@ -105,7 +105,7 @@ describe("search and navigation — integration", () => {
     const dialog = await screen.findByRole("dialog", { name: "Documents" });
     await within(dialog).findByRole("list", { name: "Documents" });
     fireEvent.change(within(dialog).getByPlaceholderText("Search titles and text"), { target: { value: "roadmap" } });
-    const results = within(dialog).getAllByRole("button").filter((button) => button.closest("ul"));
+    const results = within(within(dialog).getByRole("list", { name: "Documents" })).getAllByRole("button").filter((button) => !/^(Rename|Delete) /.test(button.getAttribute("aria-label") ?? ""));
     expect(results).toHaveLength(1);
     expect(results[0]!.textContent).toMatch(/Meeting notes.*1 match · We agreed on the budget for the roadmap\./);
     fireEvent.click(results[0]!);

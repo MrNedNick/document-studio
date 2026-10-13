@@ -1,5 +1,5 @@
 import { readDocument, type Document } from "../domain/01-blocks";
-import type { Asset } from "../domain/03-images";
+import { assetsIn, type Asset } from "../domain/03-images";
 import type { Revision } from "../domain/04-versions";
 import { err, ok, type Result } from "../domain/result";
 
@@ -200,4 +200,43 @@ export async function listDocuments(): Promise<Document[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Removes a document with its history and the pictures nothing else uses, in one transaction: either
+ * all of it goes or none of it does. A picture another document (or its history) still shows stays.
+ */
+export async function deleteDocument(id: string): Promise<boolean> {
+  try {
+    const db = await openDatabase();
+    const tx = db.transaction([DOCUMENTS, REVISIONS, ASSETS], "readwrite");
+    const documents = tx.objectStore(DOCUMENTS);
+    const revisions = tx.objectStore(REVISIONS);
+    const [allDocuments, allRevisions] = await Promise.all([request(documents.getAll()), request(revisions.getAll())]);
+    const mine = new Set<string>();
+    const kept = new Set<string>();
+    for (const record of [...allDocuments, ...allRevisions] as Array<{ id: string; documentId?: string; body?: Document["body"] }>) {
+      if (!record.body) continue;
+      const owner = record.documentId ?? record.id;
+      assetsIn(record.body, owner === id ? mine : kept);
+    }
+    documents.delete(id);
+    for (const revision of allRevisions as Revision[]) if (revision.documentId === id) revisions.delete(revision.id);
+    for (const asset of mine) if (!kept.has(asset)) tx.objectStore(ASSETS).delete(asset);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A new title for a stored document that isn't open — the open one is renamed through the editor. */
+export async function renameDocument(id: string, title: string): Promise<boolean> {
+  const found = (await listDocuments()).find((candidate) => candidate.id === id);
+  if (!found) return false;
+  return (await saveDocument({ ...found, title, updatedAt: Date.now() })).ok;
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listDocuments, listRevisions, loadLatest, saveDocument, writeRevisions } from "../../adapters/document-store";
+import { deleteDocument as deleteStored, listDocuments, listRevisions, loadLatest, renameDocument as renameStored, saveDocument, writeRevisions } from "../../adapters/document-store";
 import { makeRevision, pruneRevisions, restore, shouldSnapshot, type Revision, type VersionsError } from "../../domain/04-versions";
 import { newDocument, type Document } from "../../domain/01-blocks";
 import { importDocumentFile } from "../../adapters/document-files";
@@ -183,6 +183,45 @@ export function useDocument(delay = 400) {
   /** A new, empty document; it is saved once something is typed in it. */
   const createDocument = useCallback(() => switchTo(newDocument(newId(), Date.now())), [switchTo]);
 
+  /** Renames any document from the list; the open one goes through `rename` so a pending save keeps the new title. */
+  const renameDocument = useCallback(
+    async (id: string, title: string) => {
+      if (id === latest.current?.id) {
+        rename(title);
+        await flush();
+        return true;
+      }
+      return renameStored(id, title);
+    },
+    [rename, flush],
+  );
+
+  /**
+   * Deletes a document for good. When it is the open one, its pending save is dropped first — saving it
+   * after the delete would bring it back — and the newest remaining document opens, or a new empty one.
+   */
+  const deleteDocument = useCallback(
+    async (id: string) => {
+      const isOpen = id === latest.current?.id;
+      if (isOpen) {
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = null;
+        readBody.current = null;
+        latest.current = null;
+      } else {
+        await flush();
+      }
+      const deleted = await deleteStored(id);
+      if (isOpen) {
+        const next = (await listDocuments())[0] ?? newDocument(newId(), Date.now());
+        await switchTo(next);
+        setSave("saved");
+      }
+      return deleted;
+    },
+    [flush, switchTo],
+  );
+
   const importDocument = useCallback(async (text: string) => {
     await flush();
     const imported = await importDocumentFile(text);
@@ -190,5 +229,5 @@ export function useDocument(delay = 400) {
     setSave("saved");
   }, [flush, switchTo]);
 
-  return { document, save, setAside, rename, edited, flush, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument, importDocument };
+  return { document, save, setAside, rename, edited, flush, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument, importDocument, renameDocument, deleteDocument };
 }

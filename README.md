@@ -29,7 +29,8 @@ move them to another device.
   so a restore can always be taken back.
 - **Search and navigation** — find and replace with a match count (case and accents ignored unless
   asked; "Replace all" undoes in one step), an outline of headings to jump between sections, and a
-  list of all documents on the device with search across titles and text.
+  list of all documents on the device with search across titles and text, where any of them can be
+  renamed or deleted (after a confirmation; its history and the pictures only it uses go with it).
 - **Saved on the device** — IndexedDB, written a moment after you stop typing. A record that no longer
   reads is set aside, never deleted; a browser that blocks storage gets an honest notice.
 - **Big documents stay fast** — a 153,000-word document opens in 145 ms and a key press takes one
@@ -75,9 +76,8 @@ test/          domain, storage and editor tests + fixtures (real Word and Google
 ## Status
 
 Done: writing and safe paste, tables and lists, pictures with captions, versions, search and navigation,
-HTML and browser PDF export, document files and import, CI and a live demo.
+HTML and browser PDF export, document files and import, renaming and deleting documents, CI and a live demo.
 
 Still to do:
 
-- Deleting and renaming documents from the documents list.
 - PDF pagination and printer options depend on the browser's print dialog.

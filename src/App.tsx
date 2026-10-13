@@ -28,7 +28,7 @@ export default function App() {
 }
 
 function Studio() {
-  const { document, save, setAside, rename, edited, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument, importDocument } = useDocument();
+  const { document, save, setAside, rename, edited, revisions, generation, saveVersion, restoreVersion, openDocument, createDocument, importDocument, renameDocument, deleteDocument } = useDocument();
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [editor, setEditor] = useState<TiptapEditor | null>(null);
@@ -114,6 +114,8 @@ function Studio() {
         onOpen={(id) => void openDocument(id)}
         onCreate={() => void createDocument()}
         onImport={importDocument}
+        onRename={renameDocument}
+        onDelete={deleteDocument}
       />
       <HistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} revisions={revisions} onSave={saveVersion} onRestore={restoreVersion} />
     </div>
